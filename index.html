@@ -104,10 +104,10 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
 .srow.weekend{background:var(--weekend-bg)}
 .srow.holiday{background:var(--holiday-bg)}
 .srow.special{background:var(--special-bg)}
-.c-date{display:flex;align-items:center;gap:7px;min-width:0}
+.c-date{display:flex;align-items:center;gap:4px 7px;min-width:0;flex-wrap:wrap}
 .c-date .wd{font-weight:600;color:var(--muted);width:22px;flex:none}
 .c-date .dt{font-family:var(--font-mono);font-weight:500;font-size:13.5px}
-.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--holiday-ink);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--holiday-ink);color:#fff;white-space:nowrap}
 .srow input[type=time]{width:100%;padding:6px 6px;border:1px solid var(--line-2);border-radius:7px;font-family:var(--font-mono);font-size:13px;background:#fff}
 .srow input.i-pause{width:100%;padding:6px 8px;border:1px solid var(--line-2);border-radius:7px;font-family:var(--font-mono);font-size:13px;background:#fff}
 .srow select{width:100%;padding:6px 6px;border:1px solid var(--line-2);border-radius:7px;font-size:13px;background:#fff}
@@ -178,8 +178,8 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
   .tiles{display:none}
   .sheet{border:1px solid #999;border-radius:0}
   .srow{grid-template-columns:96px 68px 68px 62px 56px 60px 70px 1fr;padding:2.5px 8px;gap:6px;border-bottom:1px solid #DDD}
-  .srow input,.srow select{border:none;background:transparent!important;padding:0;font-size:11px;color:#000;appearance:none}
-  .srow select{color:#000}
+  .srow input[type=time],.srow input.i-pause,.srow select{border:none!important;background:transparent!important;padding:0;font-size:11px;color:#000;appearance:none}
+  .srow input:disabled{color:#666}
   .srow input::-webkit-calendar-picker-indicator{display:none}
   .srow.weekend{background:#F0F0F0!important}
   .srow.holiday{background:#F5EFDC!important}
