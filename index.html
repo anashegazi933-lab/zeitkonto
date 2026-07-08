@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zeitkonto</title>
+<meta name="description" content="Arbeitszeiterfassung und Urlaubskonto für den Handwerksbetrieb — läuft komplett im Browser, keine Daten verlassen das Gerät.">
+<meta name="theme-color" content="#20252B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23F2B200'/%3E%3Cpath d='M13.2 3.5 6.5 13h4.4l-1.6 7.5L16.9 10h-4.6l.9-6.5z' fill='%2320252B'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Zeitkonto">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDEFF1; --surface:#FFFFFF;
+  --ink:#20252B; --ink-2:#3E4650; --muted:#69727D;
+  --line:#D9DDE2; --line-2:#C6CCD3;
+  --gelb:#F2B200; --gelb-tief:#E0A400;
+  --plus:#1F7A45; --minus:#B23A22;
+  --weekend-bg:#F2F3F5;
+  --holiday-bg:#FBF3DA; --holiday-ink:#7E6212;
+  --special-bg:#EAF1F8; --special-ink:#2D5E8F;
+  --focus:#B98A00;
+  --radius:12px;
+  --font-body:'Barlow',system-ui,sans-serif;
+  --font-disp:'Barlow Semi Condensed','Barlow',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.45}
+button,input,select{font-family:var(--font-body);font-size:14px;color:var(--ink)}
+:focus-visible{outline:2.5px solid var(--focus);outline-offset:1px;border-radius:4px}
+
+/* ---------- Topbar ---------- */
+.topbar{background:var(--ink);color:#fff;padding:0 18px;position:sticky;top:0;z-index:20}
+.topbar-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:12px 0}
+.brand{display:flex;align-items:center;gap:11px;margin-right:auto}
+.brand .mark{width:36px;height:36px;border-radius:8px;background:var(--gelb);display:grid;place-items:center;flex:none}
+.brand .mark svg{width:22px;height:22px;display:block}
+.brand h1{font-family:var(--font-disp);font-size:21px;font-weight:700;margin:0;letter-spacing:.02em;line-height:1.1}
+.brand .sub{font-size:12px;color:#AEB6BF;letter-spacing:.02em}
+.tabs{display:flex;gap:6px}
+.tab-btn{border:1px solid #39414B;background:transparent;color:#C4CBD3;padding:8px 15px;border-radius:9px;font-weight:600;cursor:pointer;transition:background .12s,color .12s}
+.tab-btn:hover{color:#fff;border-color:#525B66}
+.tab-btn.active{background:var(--gelb);border-color:var(--gelb);color:var(--ink)}
+
+main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
+
+/* ---------- Panels ---------- */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.panel h2{font-family:var(--font-disp);font-size:17px;font-weight:700;margin:0 0 3px}
+.panel .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+.hint{color:var(--muted);font-size:12.5px;margin:12px 2px 0}
+.banner-warn{background:#FBF0E4;border:1px solid #E5C8A3;color:#7A4E12;border-radius:10px;padding:10px 14px;font-size:13.5px;margin-bottom:16px}
+.empty{color:var(--muted);text-align:center;padding:34px 12px;font-size:14px}
+.empty .btn{margin-top:12px}
+
+/* ---------- Buttons & Felder ---------- */
+.btn{border:1px solid var(--line-2);background:#fff;border-radius:9px;padding:9px 15px;font-weight:600;cursor:pointer;transition:background .12s}
+.btn:hover{background:#F4F5F6}
+.btn-primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn-primary:hover{background:#333B44}
+.btn-gelb{background:var(--gelb);border-color:var(--gelb);color:var(--ink)}
+.btn-gelb:hover{background:var(--gelb-tief)}
+.btn-danger{color:var(--minus);border-color:#DDB9AF}
+.btn-danger:hover{background:#F8ECE8}
+.btn-sm{padding:6px 11px;font-size:13px;border-radius:8px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field>span{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{padding:9px 10px;border:1px solid var(--line-2);border-radius:8px;background:#FCFCFD;width:100%}
+.inline-confirm{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+
+/* ---------- Zeiterfassung: Kopfzeile ---------- */
+.controls{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.controls .field{min-width:220px}
+.month-nav{display:flex;align-items:center;gap:8px}
+.month-nav .nav-btn{width:38px;height:38px;border:1px solid var(--line-2);background:#fff;border-radius:9px;font-size:17px;cursor:pointer;line-height:1}
+.month-nav .nav-btn:hover:not(:disabled){background:#F4F5F6}
+.month-nav .nav-btn:disabled{opacity:.35;cursor:default}
+.month-label{font-family:var(--font-disp);font-weight:700;font-size:17px;min-width:148px;text-align:center}
+.controls .spacer{flex:1}
+
+/* ---------- Klemmenleiste (Summen-Kacheln) ---------- */
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.tile{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line-2);border-radius:10px;padding:12px 14px 11px}
+.tile.tile-main{border-top-color:var(--gelb)}
+.tile .lbl{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.tile .val{font-family:var(--font-mono);font-weight:600;font-size:22px;margin-top:2px;line-height:1.2}
+.tile .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+.val.plus{color:var(--plus)} .val.minus{color:var(--minus)}
+.val.warn{color:var(--minus)}
+
+/* ---------- Tagesliste ---------- */
+.sheet{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.srow{display:grid;grid-template-columns:112px minmax(92px,1fr) minmax(92px,1fr) minmax(84px,.9fr) 64px 68px 84px minmax(118px,1.1fr);gap:8px;align-items:center;padding:5px 12px;border-bottom:1px solid #EFF1F3}
+.srow:last-child{border-bottom:none}
+.shead{background:#F7F8F9;border-bottom:1.5px solid var(--line);padding:8px 12px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.srow.weekend{background:var(--weekend-bg)}
+.srow.holiday{background:var(--holiday-bg)}
+.srow.special{background:var(--special-bg)}
+.c-date{display:flex;align-items:center;gap:7px;min-width:0}
+.c-date .wd{font-weight:600;color:var(--muted);width:22px;flex:none}
+.c-date .dt{font-family:var(--font-mono);font-weight:500;font-size:13.5px}
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--holiday-ink);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.srow input[type=time]{width:100%;padding:6px 6px;border:1px solid var(--line-2);border-radius:7px;font-family:var(--font-mono);font-size:13px;background:#fff}
+.srow input.i-pause{width:100%;padding:6px 8px;border:1px solid var(--line-2);border-radius:7px;font-family:var(--font-mono);font-size:13px;background:#fff}
+.srow select{width:100%;padding:6px 6px;border:1px solid var(--line-2);border-radius:7px;font-size:13px;background:#fff}
+.srow input:disabled{background:#EDEFF1;color:#9AA1A9;border-color:var(--line)}
+.c-num{font-family:var(--font-mono);font-size:13.5px;text-align:right;white-space:nowrap}
+.c-soll{color:var(--muted)}
+.c-ist{font-weight:600}
+.c-saldo{font-weight:600}
+.c-saldo.plus{color:var(--plus)} .c-saldo.minus{color:var(--minus)} .c-saldo.zero{color:var(--muted)}
+.c-saldo .saldo-sub{display:none}
+.cl{display:none}
+
+/* ---------- Mitarbeiterliste ---------- */
+.emp-form{display:grid;grid-template-columns:1.5fr 1fr .7fr .7fr .9fr;gap:12px;margin-bottom:12px}
+.form-actions{display:flex;gap:10px;align-items:center}
+.emp-row{display:grid;grid-template-columns:1.6fr .7fr .8fr .9fr 1fr auto;gap:10px;align-items:center;padding:11px 4px;border-bottom:1px solid #EFF1F3}
+.emp-row:last-child{border-bottom:none}
+.emp-head{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--line);padding:6px 4px}
+.emp-name{font-weight:600}
+.emp-name .pos{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.emp-num{font-family:var(--font-mono);font-size:13.5px}
+.emp-num.plus{color:var(--plus);font-weight:600} .emp-num.minus{color:var(--minus);font-weight:600}
+.rest-low{color:var(--minus);font-weight:600}
+.emp-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+.archived-note{color:var(--muted);font-size:13px}
+
+/* ---------- Daten-Tab ---------- */
+.data-actions{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0 4px}
+#import-file{display:none}
+.import-confirm{margin-top:12px;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;background:#F7F8F9;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.msg-ok{color:var(--plus);font-weight:600;font-size:13.5px;margin-top:10px}
+.msg-err{color:var(--minus);font-weight:600;font-size:13.5px;margin-top:10px}
+
+/* ---------- Druck ---------- */
+#print-head,.print-sign{display:none}
+
+@media (max-width:760px){
+  .topbar-inner{padding:10px 0}
+  .brand .sub{display:none}
+  main{padding:14px 10px 60px}
+  .panel{padding:14px}
+  .tiles{grid-template-columns:repeat(2,1fr)}
+  .controls .field{min-width:0;flex:1 1 100%}
+  .shead{display:none}
+  .cl{display:block;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+  .srow{grid-template-columns:1fr 1fr 1fr 1.25fr;grid-template-areas:"date date date saldo" "start ende pause bem";row-gap:7px;padding:10px 12px}
+  .c-date{grid-area:date}
+  .c-start{grid-area:start}.c-ende{grid-area:ende}.c-pause{grid-area:pause}.c-bem{grid-area:bem}
+  .c-soll,.c-ist{display:none}
+  .c-saldo{grid-area:saldo;align-self:center}
+  .c-saldo .saldo-sub{display:block;font-size:10.5px;font-weight:500;color:var(--muted)}
+  .emp-form{grid-template-columns:1fr 1fr}
+  .emp-head{display:none}
+  .emp-row{grid-template-columns:1fr 1fr;row-gap:6px}
+  .emp-row .emp-name,.emp-row .emp-actions{grid-column:1/-1}
+}
+
+@media print{
+  @page{size:A4;margin:12mm}
+  body{background:#fff;font-size:11px}
+  .topbar,.controls,.hint,.banner-warn,#view-mitarbeiter,#view-daten,.tabs{display:none!important}
+  main{max-width:none;padding:0}
+  .panel{border:none;padding:0;margin:0}
+  #print-head{display:block;margin-bottom:10px}
+  #print-head .ph-title{font-family:var(--font-disp);font-size:20px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;border-bottom:2.5px solid var(--ink);padding-bottom:6px}
+  #print-head .ph-meta{display:flex;gap:26px;margin-top:7px;font-size:11px;color:var(--ink-2);flex-wrap:wrap}
+  #print-head .ph-meta b{font-family:var(--font-mono)}
+  .tiles{display:none}
+  .sheet{border:1px solid #999;border-radius:0}
+  .srow{grid-template-columns:96px 68px 68px 62px 56px 60px 70px 1fr;padding:2.5px 8px;gap:6px;border-bottom:1px solid #DDD}
+  .srow input,.srow select{border:none;background:transparent!important;padding:0;font-size:11px;color:#000;appearance:none}
+  .srow select{color:#000}
+  .srow input::-webkit-calendar-picker-indicator{display:none}
+  .srow.weekend{background:#F0F0F0!important}
+  .srow.holiday{background:#F5EFDC!important}
+  .badge{background:#666}
+  .print-sign{display:flex;gap:40px;margin-top:34px}
+  .print-sign div{flex:1;border-top:1px solid #000;padding-top:4px;font-size:10.5px;color:#333}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M13.2 2.5 5.8 13h4.6l-1.7 8.5L18.4 9.5h-4.8l1-7z" fill="#20252B"/></svg>
+      </span>
+      <div>
+        <h1>Zeitkonto</h1>
+        <div class="sub">Arbeitszeit &amp; Urlaub im Blick</div>
+      </div>
+    </div>
+    <nav class="tabs" aria-label="Bereiche">
+      <button class="tab-btn" data-tab="zeit">Zeiterfassung</button>
+      <button class="tab-btn" data-tab="mitarbeiter">Mitarbeiter</button>
+      <button class="tab-btn" data-tab="daten">Sicherung</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div id="storage-warning" class="banner-warn" hidden>
+    Achtung: Der Browser erlaubt kein dauerhaftes Speichern (privater Modus?). Einträge gehen beim Schließen verloren —
+    bitte normal geöffnetes Browserfenster verwenden.
+  </div>
+
+  <!-- ================= Zeiterfassung ================= -->
+  <section id="view-zeit" hidden>
+    <div class="panel">
+      <div class="controls">
+        <div class="field">
+          <span>Mitarbeiter</span>
+          <select id="sel-emp"></select>
+        </div>
+        <div class="field">
+          <span>Monat</span>
+          <div class="month-nav">
+            <button class="nav-btn" id="btn-prev" aria-label="Voriger Monat">‹</button>
+            <div class="month-label" id="month-label"></div>
+            <button class="nav-btn" id="btn-next" aria-label="Nächster Monat">›</button>
+            <button class="btn btn-sm" id="btn-today">Heute</button>
+          </div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn" id="btn-print">Drucken / PDF</button>
+      </div>
+
+      <div id="print-head">
+        <div class="ph-title"><span>Stundenzettel</span><span id="ph-month"></span></div>
+        <div class="ph-meta">
+          <span>Mitarbeiter: <b id="ph-name"></b></span>
+          <span>Soll: <b id="ph-soll"></b></span>
+          <span>Ist: <b id="ph-ist"></b></span>
+          <span>Saldo Monat: <b id="ph-saldo"></b></span>
+          <span>Zeitkonto gesamt: <b id="ph-total"></b></span>
+          <span>Resturlaub: <b id="ph-urlaub"></b></span>
+        </div>
+      </div>
+
+      <div class="tiles" id="tiles"></div>
+      <div class="sheet" id="sheet"></div>
+      <div class="print-sign">
+        <div>Datum, Unterschrift Mitarbeiter</div>
+        <div>Datum, Unterschrift Arbeitgeber</div>
+      </div>
+      <p class="hint">Ein Tag zählt fürs Zeitkonto, sobald Beginn <b>und</b> Ende eingetragen sind oder eine Bemerkung
+      (Urlaub, Krank, Seminar, Schule) an einem Arbeitstag gesetzt ist. Nicht ausgefüllte Tage zählen nicht.
+      Pause in Minuten. An Wochenenden und Feiertagen ist das Soll 0 — eingetragene Arbeit zählt dort als Plus.
+      Alles wird automatisch gespeichert.</p>
+    </div>
+  </section>
+
+  <!-- ================= Mitarbeiter ================= -->
+  <section id="view-mitarbeiter" hidden>
+    <div class="panel">
+      <h2 id="form-title">Neuen Mitarbeiter anlegen</h2>
+      <p class="lead">Nur der Name ist Pflicht. Soll-Stunden pro Arbeitstag und Urlaubstage lassen sich jederzeit ändern.</p>
+      <div class="emp-form">
+        <label class="field"><span>Name *</span><input id="f-name" type="text" autocomplete="off" placeholder="Vor- und Nachname"></label>
+        <label class="field"><span>Position</span><input id="f-pos" type="text" autocomplete="off" placeholder="z. B. Geselle"></label>
+        <label class="field"><span>Soll-Std./Tag</span><input id="f-soll" type="number" step="0.25" min="0" max="24" value="8"></label>
+        <label class="field"><span>Urlaubstage/Jahr</span><input id="f-urlaub" type="number" step="1" min="0" value="30"></label>
+        <label class="field"><span>Eintritt</span><input id="f-eintritt" type="date"></label>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-gelb" id="btn-save-emp">+ Anlegen</button>
+        <button class="btn" id="btn-cancel-edit" hidden>Abbrechen</button>
+        <span class="msg-err" id="form-err" hidden>Bitte einen Namen eintragen.</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Team</h2>
+      <p class="lead">Zeitkonto und Resturlaub beziehen sich auf das laufende Jahr. Ausscheidende Mitarbeiter werden
+      archiviert — ihre Daten bleiben erhalten.</p>
+      <div id="emp-list"></div>
+    </div>
+
+    <div class="panel" id="archived-panel" hidden>
+      <h2>Archiv</h2>
+      <p class="lead">Ehemalige Mitarbeiter. Zeiten bleiben gespeichert und können jederzeit wieder aktiviert werden.</p>
+      <div id="emp-archived"></div>
+    </div>
+  </section>
+
+  <!-- ================= Sicherung ================= -->
+  <section id="view-daten" hidden>
+    <div class="panel">
+      <h2>Datensicherung</h2>
+      <p class="lead">Alle Daten liegen ausschließlich in diesem Browser auf diesem Gerät — nichts wird ins Internet
+      übertragen. Damit nichts verloren geht (z. B. beim Gerätewechsel oder Löschen der Browserdaten):
+      regelmäßig eine Sicherungsdatei erstellen.</p>
+      <div class="data-actions">
+        <button class="btn btn-primary" id="btn-export">Sicherung erstellen (Datei speichern)</button>
+        <label class="btn" for="import-file">Sicherung wiederherstellen…</label>
+        <input type="file" id="import-file" accept="application/json,.json">
+      </div>
+      <div id="import-confirm" class="import-confirm" hidden></div>
+      <div id="data-msg"></div>
+      <p class="hint">Die Sicherungsdatei (<span style="font-family:var(--font-mono)">zeitkonto-sicherung-….json</span>)
+      enthält alle Mitarbeiter und Zeiteinträge. Beim Wiederherstellen werden die aktuellen Daten ersetzt.</p>
+    </div>
+  </section>
+</main>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  const WD = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+  const MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const KEY = 'zeitkonto:v1';
+  const $ = (s, r) => (r||document).querySelector(s);
+  const $$ = (s, r) => Array.from((r||document).querySelectorAll(s));
+  const esc = s => String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  /* ---------- Speicher ---------- */
+  let storageOk = true;
+  try { localStorage.setItem('zk:test','1'); localStorage.removeItem('zk:test'); }
+  catch(e){ storageOk = false; $('#storage-warning').hidden = false; }
+
+  let state = { employees: [], entries: {} };
+  function load(){
+    if(!storageOk) return;
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(raw){
+        const p = JSON.parse(raw);
+        if(p && Array.isArray(p.employees) && typeof p.entries === 'object') state = p;
+      }
+    }catch(e){ /* defekte Daten ignorieren, nicht überschreiben bis zum ersten Speichern */ }
+  }
+  function save(){
+    if(!storageOk) return;
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }
+  const uid = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  const activeEmps = () => state.employees.filter(e => e.aktiv !== false);
+
+  /* ---------- Ansichtszustand ---------- */
+  const now = new Date();
+  let view = {
+    tab: 'zeit',
+    empId: null,
+    y: Math.max(now.getFullYear(), ZK.START_JAHR),
+    m: now.getFullYear() < ZK.START_JAHR ? ZK.START_MONAT : now.getMonth()+1,
+    editId: null,
+    confirmId: null
+  };
+  if(view.y === ZK.START_JAHR && view.m < ZK.START_MONAT) view.m = ZK.START_MONAT;
+  let pendingImport = null;
+
+  /* ---------- Tabs ---------- */
+  function showTab(tab){
+    view.tab = tab;
+    $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    $('#view-zeit').hidden = tab !== 'zeit';
+    $('#view-mitarbeiter').hidden = tab !== 'mitarbeiter';
+    $('#view-daten').hidden = tab !== 'daten';
+    if(tab === 'zeit') renderZeit();
+    if(tab === 'mitarbeiter') renderEmpList();
+  }
+  $$('.tab-btn').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+
+  /* ================= Zeiterfassung ================= */
+  function currentEmp(){
+    const list = activeEmps();
+    if(!list.length) return null;
+    let emp = list.find(e => e.id === view.empId);
+    if(!emp){ emp = list[0]; view.empId = emp.id; }
+    return emp;
+  }
+
+  function renderZeit(){
+    const emp = currentEmp();
+    const sel = $('#sel-emp');
+    sel.innerHTML = activeEmps().map(e =>
+      `<option value="${e.id}"${emp && e.id===emp.id?' selected':''}>${esc(e.name)}</option>`).join('');
+    $('#month-label').textContent = `${MONATE[view.m-1]} ${view.y}`;
+    $('#btn-prev').disabled = (view.y === ZK.START_JAHR && view.m === ZK.START_MONAT);
+
+    const sheet = $('#sheet');
+    if(!emp){
+      $('#tiles').innerHTML = '';
+      sheet.innerHTML = `<div class="empty">Noch keine Mitarbeiter angelegt.<br>
+        <button class="btn btn-gelb" id="btn-goto-emp">Ersten Mitarbeiter anlegen</button></div>`;
+      $('#btn-goto-emp').addEventListener('click', () => showTab('mitarbeiter'));
+      return;
+    }
+    renderSheet(emp);
+    renderSummary(emp);
+  }
+
+  function renderSheet(emp){
+    const mc = ZK.monthCalc(emp, state.entries[emp.id], view.y, view.m);
+    const entries = state.entries[emp.id] || {};
+    let html = `<div class="srow shead">
+      <div>Datum</div><div>Beginn</div><div>Ende</div><div>Pause (Min)</div>
+      <div style="text-align:right">Soll</div><div style="text-align:right">Ist</div>
+      <div style="text-align:right">Saldo</div><div>Bemerkung</div></div>`;
+    for(const r of mc.rows){
+      const key = ZK.dateKey(view.y, view.m, r.d);
+      const e = entries[key] || {};
+      const bemOpts = ['<option value="">—</option>'].concat(
+        ZK.BEMERKUNGEN.map(b => `<option value="${b}"${e.bemerkung===b?' selected':''}>${b}</option>`)).join('');
+      html += `<div class="srow ${rowClass(r)}" data-d="${r.d}">
+        <div class="c-date"><span class="wd">${WD[r.wd]}</span><span class="dt">${ZK.pad2(r.d)}.${ZK.pad2(view.m)}.</span>${r.holidayName?`<span class="badge">${r.holidayName}</span>`:''}</div>
+        <label class="cell c-start"><span class="cl">Beginn</span><input type="time" class="i-start" value="${e.start||''}"${r.special?' disabled':''}></label>
+        <label class="cell c-ende"><span class="cl">Ende</span><input type="time" class="i-ende" value="${e.ende||''}"${r.special?' disabled':''}></label>
+        <label class="cell c-pause"><span class="cl">Pause (Min)</span><input type="number" class="i-pause" min="0" step="5" inputmode="numeric" placeholder="0" value="${e.pauseMin||''}"${r.special?' disabled':''}></label>
+        <div class="c-num c-soll">${r.soll ? ZK.fmtMin(r.soll) : '—'}</div>
+        <div class="c-num c-ist">${r.counted ? ZK.fmtMin(r.ist) : '—'}</div>
+        <div class="c-num c-saldo ${saldoClass(r)}"><span class="saldo-main">${r.counted ? ZK.fmtSigned(r.saldo) : '—'}</span><span class="saldo-sub">${r.counted ? 'Ist '+ZK.fmtMin(r.ist) : (r.soll?'Soll '+ZK.fmtMin(r.soll):'frei')}</span></div>
+        <label class="cell c-bem"><span class="cl">Bemerkung</span><select class="i-bem">${bemOpts}</select></label>
+      </div>`;
+    }
+    $('#sheet').innerHTML = html;
+  }
+
+  const rowClass = r => r.special ? 'special' : (r.holidayName ? 'holiday' : (r.weekend ? 'weekend' : ''));
+  const saldoClass = r => !r.counted ? 'zero' : (r.saldo > 0 ? 'plus' : (r.saldo < 0 ? 'minus' : 'zero'));
+
+  // Eingaben: ein Listener für die ganze Liste; nur betroffene Zeile + Summen aktualisieren
+  $('#sheet').addEventListener('change', ev => {
+    const row = ev.target.closest('.srow[data-d]');
+    const emp = currentEmp();
+    if(!row || !emp) return;
+    const d = Number(row.dataset.d);
+    const key = ZK.dateKey(view.y, view.m, d);
+    const entry = {
+      start: $('.i-start', row).value,
+      ende: $('.i-ende', row).value,
+      pauseMin: parseInt($('.i-pause', row).value, 10) || 0,
+      bemerkung: $('.i-bem', row).value
+    };
+    if(!state.entries[emp.id]) state.entries[emp.id] = {};
+    if(!entry.start && !entry.ende && !entry.pauseMin && !entry.bemerkung){
+      delete state.entries[emp.id][key];
+    } else {
+      state.entries[emp.id][key] = entry;
+    }
+    save();
+    updateRow(row, emp, d);
+    renderSummary(emp);
+  });
+
+  function updateRow(row, emp, d){
+    const hol = ZK.holidays(view.y);
+    const key = ZK.dateKey(view.y, view.m, d);
+    const r = ZK.dayCalc(emp, (state.entries[emp.id]||{})[key], view.y, view.m, d, hol);
+    row.className = 'srow ' + rowClass(r);
+    row.dataset.d = d;
+    ['.i-start','.i-ende','.i-pause'].forEach(s => { $(s, row).disabled = !!r.special; });
+    $('.c-ist', row).textContent = r.counted ? ZK.fmtMin(r.ist) : '—';
+    const saldoEl = $('.c-saldo', row);
+    saldoEl.className = 'c-num c-saldo ' + saldoClass(r);
+    $('.saldo-main', saldoEl).textContent = r.counted ? ZK.fmtSigned(r.saldo) : '—';
+    $('.saldo-sub', saldoEl).textContent = r.counted ? 'Ist '+ZK.fmtMin(r.ist) : (r.soll ? 'Soll '+ZK.fmtMin(r.soll) : 'frei');
+  }
+
+  function renderSummary(emp){
+    const empEntries = state.entries[emp.id];
+    const mc = ZK.monthCalc(emp, empEntries, view.y, view.m);
+    const carry = ZK.carryOverMin(emp, empEntries, view.y, view.m);
+    const total = carry + mc.saldo;
+    const rest = ZK.vacationRemaining(emp, empEntries, view.y);
+    const cls = v => v > 0 ? 'plus' : (v < 0 ? 'minus' : '');
+    $('#tiles').innerHTML = `
+      <div class="tile"><div class="lbl">Übertrag Vormonate</div>
+        <div class="val ${cls(carry)}">${ZK.fmtSigned(carry)}</div>
+        <div class="sub">seit Januar ${ZK.START_JAHR}</div></div>
+      <div class="tile"><div class="lbl">Saldo ${MONATE[view.m-1]}</div>
+        <div class="val ${cls(mc.saldo)}">${ZK.fmtSigned(mc.saldo)}</div>
+        <div class="sub">Soll ${ZK.fmtMin(mc.sollMonat)} · Ist ${ZK.fmtMin(mc.ist)}</div></div>
+      <div class="tile tile-main"><div class="lbl">Zeitkonto gesamt</div>
+        <div class="val ${cls(total)}">${ZK.fmtSigned(total)}</div>
+        <div class="sub">Stand Ende ${MONATE[view.m-1]}</div></div>
+      <div class="tile"><div class="lbl">Resturlaub ${view.y}</div>
+        <div class="val ${rest < 0 ? 'warn' : ''}">${rest} Tage</div>
+        <div class="sub">von ${Number(emp.urlaubstageJahr)||0} · ${mc.urlaub} in diesem Monat</div></div>`;
+    // Druckkopf
+    $('#ph-month').textContent = `${MONATE[view.m-1]} ${view.y}`;
+    $('#ph-name').textContent = emp.name;
+    $('#ph-soll').textContent = ZK.fmtMin(mc.sollMonat) + ' h';
+    $('#ph-ist').textContent = ZK.fmtMin(mc.ist) + ' h';
+    $('#ph-saldo').textContent = ZK.fmtSigned(mc.saldo) + ' h';
+    $('#ph-total').textContent = ZK.fmtSigned(total) + ' h';
+    $('#ph-urlaub').textContent = rest + ' Tage';
+  }
+
+  $('#sel-emp').addEventListener('change', e => { view.empId = e.target.value; renderZeit(); });
+  $('#btn-prev').addEventListener('click', () => {
+    if(view.y === ZK.START_JAHR && view.m === ZK.START_MONAT) return;
+    view.m--; if(view.m < 1){ view.m = 12; view.y--; }
+    renderZeit();
+  });
+  $('#btn-next').addEventListener('click', () => {
+    view.m++; if(view.m > 12){ view.m = 1; view.y++; }
+    renderZeit();
+  });
+  $('#btn-today').addEventListener('click', () => {
+    const n = new Date();
+    view.y = Math.max(n.getFullYear(), ZK.START_JAHR);
+    view.m = n.getFullYear() < ZK.START_JAHR ? ZK.START_MONAT : n.getMonth()+1;
+    renderZeit();
+  });
+  $('#btn-print').addEventListener('click', () => window.print());
+
+  /* ================= Mitarbeiter ================= */
+  function resetForm(){
+    view.editId = null;
+    $('#form-title').textContent = 'Neuen Mitarbeiter anlegen';
+    $('#btn-save-emp').textContent = '+ Anlegen';
+    $('#btn-cancel-edit').hidden = true;
+    $('#f-name').value = ''; $('#f-pos').value = ''; $('#f-eintritt').value = '';
+    $('#f-soll').value = 8; $('#f-urlaub').value = 30;
+    $('#form-err').hidden = true;
+  }
+  function startEdit(emp){
+    view.editId = emp.id;
+    $('#form-title').textContent = `Mitarbeiter bearbeiten: ${emp.name}`;
+    $('#btn-save-emp').textContent = 'Speichern';
+    $('#btn-cancel-edit').hidden = false;
+    $('#f-name').value = emp.name; $('#f-pos').value = emp.position || '';
+    $('#f-soll').value = emp.sollStdProTag; $('#f-urlaub').value = emp.urlaubstageJahr;
+    $('#f-eintritt').value = emp.eintritt || '';
+    $('#f-name').focus();
+    window.scrollTo({top: 0});
+  }
+  $('#btn-save-emp').addEventListener('click', () => {
+    const name = $('#f-name').value.trim();
+    if(!name){ $('#form-err').hidden = false; $('#f-name').focus(); return; }
+    const data = {
+      name,
+      position: $('#f-pos').value.trim(),
+      sollStdProTag: Math.min(24, Math.max(0, parseFloat($('#f-soll').value) || 8)),
+      urlaubstageJahr: Math.max(0, parseInt($('#f-urlaub').value, 10) || 0),
+      eintritt: $('#f-eintritt').value || ''
+    };
+    if(view.editId){
+      const emp = state.employees.find(e => e.id === view.editId);
+      if(emp) Object.assign(emp, data);
+    } else {
+      state.employees.push(Object.assign({ id: uid(), aktiv: true }, data));
+    }
+    save(); resetForm(); renderEmpList();
+  });
+  $('#btn-cancel-edit').addEventListener('click', resetForm);
+
+  function totalSaldoNow(emp){
+    const n = new Date();
+    let y = n.getFullYear(), m = n.getMonth()+1;
+    if(y < ZK.START_JAHR){ y = ZK.START_JAHR; m = ZK.START_MONAT; }
+    return ZK.carryOverMin(emp, state.entries[emp.id], y, m) +
+           ZK.monthCalc(emp, state.entries[emp.id], y, m).saldo;
+  }
+
+  function renderEmpList(){
+    const yearNow = Math.max(new Date().getFullYear(), ZK.START_JAHR);
+    const list = activeEmps();
+    const root = $('#emp-list');
+    if(!list.length){
+      root.innerHTML = '<div class="empty">Noch keine Mitarbeiter. Oben das erste Teammitglied anlegen.</div>';
+    } else {
+      let html = `<div class="emp-row emp-head"><div>Name</div><div>Soll/Tag</div><div>Urlaub/Jahr</div>
+        <div>Resturlaub ${yearNow}</div><div>Zeitkonto</div><div></div></div>`;
+      for(const emp of list){
+        const rest = ZK.vacationRemaining(emp, state.entries[emp.id], yearNow);
+        const total = totalSaldoNow(emp);
+        const actions = view.confirmId === emp.id
+          ? `<span class="inline-confirm">Wirklich archivieren?
+               <button class="btn btn-sm btn-danger" data-act="arch-yes" data-id="${emp.id}">Ja</button>
+               <button class="btn btn-sm" data-act="arch-no" data-id="${emp.id}">Abbrechen</button></span>`
+          : `<button class="btn btn-sm" data-act="edit" data-id="${emp.id}">Bearbeiten</button>
+             <button class="btn btn-sm btn-danger" data-act="arch" data-id="${emp.id}">Archivieren</button>`;
+        html += `<div class="emp-row">
+          <div class="emp-name">${esc(emp.name)}${emp.position?`<span class="pos">${esc(emp.position)}${emp.eintritt?' · seit '+emp.eintritt.split('-').reverse().join('.'):''}</span>`:(emp.eintritt?`<span class="pos">seit ${emp.eintritt.split('-').reverse().join('.')}</span>`:'')}</div>
+          <div class="emp-num">${String(emp.sollStdProTag).replace('.',',')} h</div>
+          <div class="emp-num">${emp.urlaubstageJahr} Tage</div>
+          <div class="emp-num ${rest <= 5 ? 'rest-low' : ''}">${rest} Tage</div>
+          <div class="emp-num ${total>0?'plus':(total<0?'minus':'')}">${ZK.fmtSigned(total)} h</div>
+          <div class="emp-actions">${actions}</div>
+        </div>`;
+      }
+      root.innerHTML = html;
+    }
+    const archived = state.employees.filter(e => e.aktiv === false);
+    $('#archived-panel').hidden = !archived.length;
+    if(archived.length){
+      $('#emp-archived').innerHTML = archived.map(emp => `<div class="emp-row">
+        <div class="emp-name">${esc(emp.name)}<span class="pos archived-note">${esc(emp.position||'')}</span></div>
+        <div></div><div></div><div></div><div></div>
+        <div class="emp-actions"><button class="btn btn-sm" data-act="restore" data-id="${emp.id}">Wieder aktivieren</button></div>
+      </div>`).join('');
+    }
+  }
+
+  $('#view-mitarbeiter').addEventListener('click', ev => {
+    const btn = ev.target.closest('button[data-act]');
+    if(!btn) return;
+    const id = btn.dataset.id;
+    const emp = state.employees.find(e => e.id === id);
+    if(!emp) return;
+    switch(btn.dataset.act){
+      case 'edit': view.confirmId = null; startEdit(emp); renderEmpList(); break;
+      case 'arch': view.confirmId = id; renderEmpList(); break;
+      case 'arch-no': view.confirmId = null; renderEmpList(); break;
+      case 'arch-yes':
+        emp.aktiv = false; view.confirmId = null;
+        if(view.empId === id) view.empId = null;
+        if(view.editId === id) resetForm();
+        save(); renderEmpList(); break;
+      case 'restore': emp.aktiv = true; save(); renderEmpList(); break;
+    }
+  });
+
+  /* ================= Sicherung ================= */
+  $('#btn-export').addEventListener('click', () => {
+    const n = new Date();
+    const stamp = `${n.getFullYear()}-${ZK.pad2(n.getMonth()+1)}-${ZK.pad2(n.getDate())}`;
+    const payload = { app: 'zeitkonto', version: 1, exportiert: n.toISOString(), employees: state.employees, entries: state.entries };
+    const blob = new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `zeitkonto-sicherung-${stamp}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    dataMsg('Sicherungsdatei wurde erstellt und heruntergeladen.', true);
+  });
+
+  $('#import-file').addEventListener('change', ev => {
+    const file = ev.target.files[0];
+    ev.target.value = '';
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const p = JSON.parse(reader.result);
+        if(!p || p.app !== 'zeitkonto' || !Array.isArray(p.employees) || typeof p.entries !== 'object'){
+          dataMsg('Das ist keine gültige Zeitkonto-Sicherungsdatei.', false); return;
+        }
+        pendingImport = { employees: p.employees, entries: p.entries };
+        const when = p.exportiert ? new Date(p.exportiert).toLocaleDateString('de-DE') : 'unbekannt';
+        const box = $('#import-confirm');
+        box.hidden = false;
+        box.innerHTML = `<span>Sicherung vom <b>${when}</b> mit <b>${p.employees.length}</b> Mitarbeiter(n) gefunden.
+          Aktuelle Daten werden ersetzt — fortfahren?</span>
+          <button class="btn btn-sm btn-gelb" id="btn-import-yes">Ja, wiederherstellen</button>
+          <button class="btn btn-sm" id="btn-import-no">Abbrechen</button>`;
+        $('#btn-import-yes').addEventListener('click', () => {
+          state = { employees: pendingImport.employees, entries: pendingImport.entries };
+          pendingImport = null; box.hidden = true;
+          save(); view.empId = null; resetForm(); renderEmpList();
+          dataMsg('Sicherung wiederhergestellt.', true);
+        });
+        $('#btn-import-no').addEventListener('click', () => { pendingImport = null; box.hidden = true; });
+      }catch(e){ dataMsg('Datei konnte nicht gelesen werden.', false); }
+    };
+    reader.readAsText(file);
+  });
+
+  function dataMsg(text, ok){
+    $('#data-msg').innerHTML = `<div class="${ok?'msg-ok':'msg-err'}">${esc(text)}</div>`;
+  }
+
+  /* ---------- Start ---------- */
+  load();
+  showTab(activeEmps().length ? 'zeit' : 'mitarbeiter');
+
+  if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')){
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
