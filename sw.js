@@ -1,7 +1,7 @@
 /* Zeitkonto Service Worker — Offline-Fähigkeit.
    Strategie: App-Dateien network-first (Updates kommen sofort an, offline aus dem Cache),
    Schriften cache-first. */
-const VERSION = 'zeitkonto-v1';
+const VERSION = 'zeitkonto-v2';
 const CORE = ['./', 'index.html', 'logic.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {

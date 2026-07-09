@@ -20,6 +20,8 @@ Alle Daten liegen im `localStorage` des Nutzers — es gibt bewusst keinen Serve
 - Soll: Mo–Fr = Soll-Std./Tag (Standard 8), Sa/So/Feiertag = 0; Arbeit dort zählt als Plus
 - Zeitkonto = kumulierter Saldo ab Januar 2026 (Startmonat, fest)
 - Urlaubszählung: nur Arbeitstage; Resturlaub bezieht sich aufs angezeigte Jahr
+- Urlaubs-Übertrag Vorjahr: im Startjahr 2026 händisch am Mitarbeiter gepflegt (Feld
+  `urlaubUebertrag`), ab dem Folgejahr automatisch der Resturlaub des Vorjahres
 
 ## Entwicklung
 

@@ -120,14 +120,28 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
 .c-saldo .saldo-sub{display:none}
 .cl{display:none}
 
+/* ---------- Monats-Bilanz unter der Tagesliste ---------- */
+.bilanz{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:10px;overflow:hidden}
+.bilanz .btitle{background:#F7F8F9;border-bottom:1.5px solid var(--line);padding:8px 14px;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.bilanz .brow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 14px;border-bottom:1px solid #EFF1F3}
+.bilanz .brow:last-child{border-bottom:none}
+.bilanz .bl{font-size:13.5px;color:var(--ink-2)}
+.bilanz .bl small{color:var(--muted)}
+.bilanz .bv{font-family:var(--font-mono);font-size:14px;font-weight:600;white-space:nowrap}
+.bilanz .brow.total{background:#FBF6E7;border-top:1.5px solid var(--gelb)}
+.bilanz .brow.total .bl{font-weight:600;color:var(--ink)}
+.bilanz .brow.total .bv{font-size:16px}
+.bv.plus{color:var(--plus)} .bv.minus{color:var(--minus)}
+
 /* ---------- Mitarbeiterliste ---------- */
-.emp-form{display:grid;grid-template-columns:1.5fr 1fr .7fr .7fr .9fr;gap:12px;margin-bottom:12px}
+.emp-form{display:grid;grid-template-columns:1.5fr 1fr .7fr .7fr .8fr .9fr;gap:12px;margin-bottom:12px}
 .form-actions{display:flex;gap:10px;align-items:center}
 .emp-row{display:grid;grid-template-columns:1.6fr .7fr .8fr .9fr 1fr auto;gap:10px;align-items:center;padding:11px 4px;border-bottom:1px solid #EFF1F3}
 .emp-row:last-child{border-bottom:none}
 .emp-head{font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--line);padding:6px 4px}
 .emp-name{font-weight:600}
 .emp-name .pos{display:block;font-weight:400;font-size:12.5px;color:var(--muted)}
+.emp-num .pos{display:block;font-weight:400;font-size:12px;color:var(--muted);font-family:var(--font-body)}
 .emp-num{font-family:var(--font-mono);font-size:13.5px}
 .emp-num.plus{color:var(--plus);font-weight:600} .emp-num.minus{color:var(--minus);font-weight:600}
 .rest-low{color:var(--minus);font-weight:600}
@@ -184,6 +198,12 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
   .srow.weekend{background:#F0F0F0!important}
   .srow.holiday{background:#F5EFDC!important}
   .badge{background:#666}
+  .bilanz{border:1px solid #999;border-radius:0;margin-top:8px;page-break-inside:avoid}
+  .bilanz .brow{padding:3px 8px;border-bottom:1px solid #DDD}
+  .bilanz .btitle{padding:4px 8px}
+  .bilanz .bv{font-size:11px}
+  .bilanz .brow.total{background:#F0F0F0!important;border-top:1.5px solid #000}
+  .bilanz .brow.total .bv{font-size:12px}
   .print-sign{display:flex;gap:40px;margin-top:34px}
   .print-sign div{flex:1;border-top:1px solid #000;padding-top:4px;font-size:10.5px;color:#333}
 }
@@ -252,6 +272,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
 
       <div class="tiles" id="tiles"></div>
       <div class="sheet" id="sheet"></div>
+      <div class="bilanz" id="bilanz" hidden></div>
       <div class="print-sign">
         <div>Datum, Unterschrift Mitarbeiter</div>
         <div>Datum, Unterschrift Arbeitgeber</div>
@@ -267,12 +288,15 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
   <section id="view-mitarbeiter" hidden>
     <div class="panel">
       <h2 id="form-title">Neuen Mitarbeiter anlegen</h2>
-      <p class="lead">Nur der Name ist Pflicht. Soll-Stunden pro Arbeitstag und Urlaubstage lassen sich jederzeit ändern.</p>
+      <p class="lead">Nur der Name ist Pflicht. Soll-Stunden pro Arbeitstag und Urlaubstage lassen sich jederzeit ändern.
+      „Übertrag Vorjahr“ = Resturlaub aus dem Vorjahr (kann auch nachträglich eingetragen werden); ab dem zweiten Jahr
+      übernimmt die App den Resturlaub automatisch ins neue Jahr.</p>
       <div class="emp-form">
         <label class="field"><span>Name *</span><input id="f-name" type="text" autocomplete="off" placeholder="Vor- und Nachname"></label>
         <label class="field"><span>Position</span><input id="f-pos" type="text" autocomplete="off" placeholder="z. B. Geselle"></label>
         <label class="field"><span>Soll-Std./Tag</span><input id="f-soll" type="number" step="0.25" min="0" max="24" value="8"></label>
         <label class="field"><span>Urlaubstage/Jahr</span><input id="f-urlaub" type="number" step="1" min="0" value="30"></label>
+        <label class="field"><span>Übertrag Vorjahr</span><input id="f-uebertrag" type="number" step="1" value="0" title="Resturlaub aus dem Vorjahr — Tage, die zusätzlich zum Jahresurlaub zur Verfügung stehen. Ab dem zweiten Jahr übernimmt die App den Übertrag automatisch."></label>
         <label class="field"><span>Eintritt</span><input id="f-eintritt" type="date"></label>
       </div>
       <div class="form-actions">
@@ -395,6 +419,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
     const sheet = $('#sheet');
     if(!emp){
       $('#tiles').innerHTML = '';
+      $('#bilanz').hidden = true;
       sheet.innerHTML = `<div class="empty">Noch keine Mitarbeiter angelegt.<br>
         <button class="btn btn-gelb" id="btn-goto-emp">Ersten Mitarbeiter anlegen</button></div>`;
       $('#btn-goto-emp').addEventListener('click', () => showTab('mitarbeiter'));
@@ -477,6 +502,8 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
     const carry = ZK.carryOverMin(emp, empEntries, view.y, view.m);
     const total = carry + mc.saldo;
     const rest = ZK.vacationRemaining(emp, empEntries, view.y);
+    const uCarry = ZK.vacationCarry(emp, empEntries, view.y);
+    const uJahr = Number(emp.urlaubstageJahr) || 0;
     const cls = v => v > 0 ? 'plus' : (v < 0 ? 'minus' : '');
     $('#tiles').innerHTML = `
       <div class="tile"><div class="lbl">Übertrag Vormonate</div>
@@ -490,7 +517,23 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
         <div class="sub">Stand Ende ${MONATE[view.m-1]}</div></div>
       <div class="tile"><div class="lbl">Resturlaub ${view.y}</div>
         <div class="val ${rest < 0 ? 'warn' : ''}">${rest} Tage</div>
-        <div class="sub">von ${Number(emp.urlaubstageJahr)||0} · ${mc.urlaub} in diesem Monat</div></div>`;
+        <div class="sub">${uCarry ? `${uJahr} + ${uCarry} Übertrag ${view.y-1}` : `von ${uJahr}`} · ${mc.urlaub} in diesem Monat</div></div>`;
+
+    // Bilanz unter der Tagesliste: Monat aufsummiert, mit Übertrag verrechnet
+    const bilanz = $('#bilanz');
+    bilanz.hidden = false;
+    bilanz.innerHTML = `
+      <div class="btitle">Bilanz ${MONATE[view.m-1]} ${view.y}</div>
+      <div class="brow"><span class="bl">Ist-Stunden ${MONATE[view.m-1]}</span>
+        <span class="bv">${ZK.fmtMin(mc.ist)} h</span></div>
+      <div class="brow"><span class="bl">Soll-Stunden <small>(gebuchte Tage)</small></span>
+        <span class="bv">− ${ZK.fmtMin(mc.sollGebucht)} h</span></div>
+      <div class="brow"><span class="bl">Saldo ${MONATE[view.m-1]}</span>
+        <span class="bv ${cls(mc.saldo)}">${ZK.fmtSigned(mc.saldo)} h</span></div>
+      <div class="brow"><span class="bl">Übertrag aus den Vormonaten <small>(seit Januar ${ZK.START_JAHR})</small></span>
+        <span class="bv ${cls(carry)}">${ZK.fmtSigned(carry)} h</span></div>
+      <div class="brow total"><span class="bl">Zeitkonto Ende ${MONATE[view.m-1]} — wird in den Folgemonat übertragen</span>
+        <span class="bv ${cls(total)}">${ZK.fmtSigned(total)} h</span></div>`;
     // Druckkopf
     $('#ph-month').textContent = `${MONATE[view.m-1]} ${view.y}`;
     $('#ph-name').textContent = emp.name;
@@ -526,7 +569,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
     $('#btn-save-emp').textContent = '+ Anlegen';
     $('#btn-cancel-edit').hidden = true;
     $('#f-name').value = ''; $('#f-pos').value = ''; $('#f-eintritt').value = '';
-    $('#f-soll').value = 8; $('#f-urlaub').value = 30;
+    $('#f-soll').value = 8; $('#f-urlaub').value = 30; $('#f-uebertrag').value = 0;
     $('#form-err').hidden = true;
   }
   function startEdit(emp){
@@ -536,6 +579,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
     $('#btn-cancel-edit').hidden = false;
     $('#f-name').value = emp.name; $('#f-pos').value = emp.position || '';
     $('#f-soll').value = emp.sollStdProTag; $('#f-urlaub').value = emp.urlaubstageJahr;
+    $('#f-uebertrag').value = Number(emp.urlaubUebertrag) || 0;
     $('#f-eintritt').value = emp.eintritt || '';
     $('#f-name').focus();
     window.scrollTo({top: 0});
@@ -548,6 +592,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
       position: $('#f-pos').value.trim(),
       sollStdProTag: Math.min(24, Math.max(0, parseFloat($('#f-soll').value) || 8)),
       urlaubstageJahr: Math.max(0, parseInt($('#f-urlaub').value, 10) || 0),
+      urlaubUebertrag: parseInt($('#f-uebertrag').value, 10) || 0,
       eintritt: $('#f-eintritt').value || ''
     };
     if(view.editId){
@@ -579,6 +624,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
         <div>Resturlaub ${yearNow}</div><div>Zeitkonto</div><div></div></div>`;
       for(const emp of list){
         const rest = ZK.vacationRemaining(emp, state.entries[emp.id], yearNow);
+        const uCarry = ZK.vacationCarry(emp, state.entries[emp.id], yearNow);
         const total = totalSaldoNow(emp);
         const actions = view.confirmId === emp.id
           ? `<span class="inline-confirm">Wirklich archivieren?
@@ -589,7 +635,7 @@ main{max-width:1100px;margin:0 auto;padding:20px 18px 70px}
         html += `<div class="emp-row">
           <div class="emp-name">${esc(emp.name)}${emp.position?`<span class="pos">${esc(emp.position)}${emp.eintritt?' · seit '+emp.eintritt.split('-').reverse().join('.'):''}</span>`:(emp.eintritt?`<span class="pos">seit ${emp.eintritt.split('-').reverse().join('.')}</span>`:'')}</div>
           <div class="emp-num">${String(emp.sollStdProTag).replace('.',',')} h</div>
-          <div class="emp-num">${emp.urlaubstageJahr} Tage</div>
+          <div class="emp-num">${emp.urlaubstageJahr} Tage${uCarry ? `<span class="pos">${uCarry > 0 ? '+' : ''}${uCarry} Übertrag ${yearNow-1}</span>` : ''}</div>
           <div class="emp-num ${rest <= 5 ? 'rest-low' : ''}">${rest} Tage</div>
           <div class="emp-num ${total>0?'plus':(total<0?'minus':'')}">${ZK.fmtSigned(total)} h</div>
           <div class="emp-actions">${actions}</div>

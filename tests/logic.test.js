@@ -115,6 +115,32 @@ t('Resturlaub: 30 − 2 genommene = 28 (Wochenend-Urlaub zählt nicht)', () => {
   assert.strictEqual(ZK.vacationRemaining(emp, entries, 2026), 28);
 });
 
+t('Urlaubs-Übertrag Vorjahr: händisches Feld zählt im Startjahr 2026 mit', () => {
+  const empU = { sollStdProTag: 8, urlaubstageJahr: 30, urlaubUebertrag: 4 };
+  const entries = {
+    '2026-03-02': { bemerkung: 'Urlaub' }, // Mo
+    '2026-03-03': { bemerkung: 'Urlaub' }, // Di
+  };
+  assert.strictEqual(ZK.vacationCarry(empU, entries, 2026), 4);
+  assert.strictEqual(ZK.vacationRemaining(empU, entries, 2026), 30 + 4 - 2);
+});
+t('Urlaubs-Übertrag ab 2027: Resturlaub des Vorjahres wird automatisch übernommen', () => {
+  const empU = { sollStdProTag: 8, urlaubstageJahr: 30, urlaubUebertrag: 4 };
+  const entries = {
+    '2026-03-02': { bemerkung: 'Urlaub' },
+    '2027-06-07': { bemerkung: 'Urlaub' }, // Mo 2027
+  };
+  // 2026: 30 + 4 − 1 = 33 Rest -> Übertrag nach 2027
+  assert.strictEqual(ZK.vacationCarry(empU, entries, 2027), 33);
+  assert.strictEqual(ZK.vacationRemaining(empU, entries, 2027), 30 + 33 - 1);
+  // und weiter nach 2028 (kein Urlaub 2028 gebucht)
+  assert.strictEqual(ZK.vacationCarry(empU, entries, 2028), 62);
+});
+t('Ohne Übertrags-Feld (Bestandsdaten): Übertrag 0', () => {
+  assert.strictEqual(ZK.vacationCarry(emp, {}, 2026), 0);
+  assert.strictEqual(ZK.vacationRemaining(emp, {}, 2026), 30);
+});
+
 t('Halbe Soll-Stunden (7,5 h/Tag) funktionieren', () => {
   const e75 = { sollStdProTag: 7.5 };
   const r = ZK.dayCalc(e75, { start: '08:00', ende: '16:00', pauseMin: 30 }, 2026, 1, 7, hol26);

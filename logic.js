@@ -133,8 +133,18 @@ const ZK = (() => {
     return used;
   }
 
+  /* Urlaubs-Übertrag aus dem Vorjahr: im Startjahr händisch am Mitarbeiter gepflegt
+     (Feld urlaubUebertrag, weil Daten vor 2026 nicht in der App liegen),
+     ab dem Folgejahr automatisch der Resturlaub des Vorjahres. */
+  function vacationCarry(emp, empEntries, year) {
+    if (year <= START_JAHR) return Math.round(Number(emp.urlaubUebertrag) || 0);
+    return vacationRemaining(emp, empEntries, year - 1);
+  }
+
   function vacationRemaining(emp, empEntries, year) {
-    return (Number(emp.urlaubstageJahr) || 0) - vacationUsed(emp, empEntries, year);
+    return (Number(emp.urlaubstageJahr) || 0)
+      + vacationCarry(emp, empEntries, year)
+      - vacationUsed(emp, empEntries, year);
   }
 
   // Formatierung: Minuten -> "8:45" bzw. mit Vorzeichen "+0:45" / "−2:30" / "±0:00"
@@ -152,7 +162,7 @@ const ZK = (() => {
     BEMERKUNGEN, START_JAHR, START_MONAT,
     pad2, dateKey, daysInMonth, weekday,
     easterSunday, holidays, parseTime, sollMin,
-    dayCalc, monthCalc, carryOverMin, vacationUsed, vacationRemaining,
+    dayCalc, monthCalc, carryOverMin, vacationUsed, vacationCarry, vacationRemaining,
     fmtMin, fmtSigned,
   };
 })();
