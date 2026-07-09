@@ -126,6 +126,15 @@ const ZK = (() => {
     return sum;
   }
 
+  // Jahres-Saldo: Summe der Monatssalden eines Jahres bis einschließlich Monat mBis.
+  // Unterscheidet sich ab dem zweiten Jahr vom Zeitkonto gesamt (das über alle Jahre läuft).
+  function yearSaldoMin(emp, empEntries, y, mBis) {
+    const from = y === START_JAHR ? START_MONAT : 1;
+    let sum = 0;
+    for (let m = from; m <= (mBis || 12); m++) sum += monthCalc(emp, empEntries, y, m).saldo;
+    return sum;
+  }
+
   // Genommene Urlaubstage im Jahr (nur Arbeitstage zählen)
   function vacationUsed(emp, empEntries, year) {
     let used = 0;
@@ -162,7 +171,7 @@ const ZK = (() => {
     BEMERKUNGEN, START_JAHR, START_MONAT,
     pad2, dateKey, daysInMonth, weekday,
     easterSunday, holidays, parseTime, sollMin,
-    dayCalc, monthCalc, carryOverMin, vacationUsed, vacationCarry, vacationRemaining,
+    dayCalc, monthCalc, carryOverMin, yearSaldoMin, vacationUsed, vacationCarry, vacationRemaining,
     fmtMin, fmtSigned,
   };
 })();

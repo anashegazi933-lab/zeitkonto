@@ -103,6 +103,18 @@ t('Monatssummen & Übertrag in den Folgemonat', () => {
   assert.strictEqual(ZK.carryOverMin(emp, entries, 2027, 1), 30);
 });
 
+t('Jahres-Saldo: zählt nur Monate des jeweiligen Jahres', () => {
+  const entries = {
+    '2026-12-30': { start: '07:00', ende: '17:00', pauseMin: 60 }, // Mi, +1:00
+    '2027-01-04': { start: '07:00', ende: '17:30', pauseMin: 60 }, // Mo, +1:30
+  };
+  assert.strictEqual(ZK.yearSaldoMin(emp, entries, 2026, 12), 60);
+  assert.strictEqual(ZK.yearSaldoMin(emp, entries, 2027, 1), 90);
+  assert.strictEqual(ZK.yearSaldoMin(emp, entries, 2027, 12), 90);
+  // Zeitkonto gesamt läuft dagegen über beide Jahre
+  assert.strictEqual(ZK.carryOverMin(emp, entries, 2027, 2), 150);
+});
+
 // --- Urlaubskonto ---
 t('Resturlaub: 30 − 2 genommene = 28 (Wochenend-Urlaub zählt nicht)', () => {
   const entries = {
